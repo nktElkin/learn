@@ -1,0 +1,6 @@
+# Map
+learning repo
+
+## Structure
+- [Build] - storage of zipped build files + packajes inside
+- [Root] - root storage for all active repos' 
