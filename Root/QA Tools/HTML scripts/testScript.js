@@ -4,10 +4,11 @@ const { parseDOM } = require('htmlparser2');
 
 
 // // Imports js
-const { logReport, tableTags} = require('./Output/complectReport');
+const { logReport, tableTags} = require('./InputOutput/complectReport');
 const { checkIsEmptyLinks, checkIsHashHref} = require('./Tests/linkValidation');
 const {checkIsRoleTable} = require('./Tests/tableValidation.js');
 const {checkSrc} = require('./Tests/readSource.js');
+const {parseHtmlDom} = require('./InputOutput/parseHtmlDom.js');
 // const { tableTags} = require('./Output/complectReport');
 
 
@@ -35,10 +36,16 @@ async function checkIsImageAvailable(node) {
 
 
 // Parse HTML and find special link tags and :hover pseudo-classes
-function findSpecialLinkTags(html) {
+async function findSpecialLinkTags(html) {
 
     // Parse html
-    const dom = parseDOM(html, { withStartIndices: true });
+
+
+    
+    const dom = await parseHtmlDom(html);
+    // const dom = parseDOM(html, { withStartIndices: true });
+
+
 
     // List declaration
     const emptyLinks = [];
@@ -48,13 +55,19 @@ function findSpecialLinkTags(html) {
     const missingImages = [];
    
 
-    const {hasHtml, hasImages, markup, images} = checkSrc();
+
+
+    const {hasHtml, hasImages, markup, images} = await checkSrc();
     console.log(images);
+
+    if(hasHtml === null) return null;
+
 
 
 
     
     function traverseNodes(nodes) {
+        if(!Array.isArray(nodes)) nodes = [nodes];
         nodes.forEach(node => {
 
             if (node.type === 'tag') {
@@ -109,8 +122,7 @@ function findSpecialLinkTags(html) {
             }
         });
     }
-
-
+    
     traverseNodes(dom);
     return { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages };
 }
@@ -132,38 +144,59 @@ if (!filePath) {
 // Read document, trigger parsing
 
 
-fs.readFile(filePath, 'utf8', (err, data) => {
+// fs.readFile(filePath, 'utf8', (err, data) => {
+// //      if (err) {
+//     console.error('Error reading file:', err);
+//     return;
+// }
+
+
+// const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = findSpecialLinkTags(data);
+
+
+// logReport("Emplty links", emptyLinks);
+// logReport("# href", hrefHashLines);
+// logReport(":hover class", hoverLines);
+// logReport("table without role 'presenatation'", tableTags);
+   
+
+//     // logReport("image is available", missingImages);
+    
+//     // const links = tableReport("Emplty links", emptyLinks);
+//     // const  href = tableReport("# href", hrefHashLines);
+//     // hover = tableReport(":hover class", hoverLines);
+//     // table = tableReport("table without role 'presenatation'", tableTags);
+
+
+
+//     // const reportTable = [
+//     //     ["result", "type", "log"],
+//     //     [links[0], links[1], links[2]],
+//     //     [href[0], href[1], href[2]],
+//     //     [hover[0], hover[1], hover[2]]
+//     // ];
+//     // console.table(reportTable)
+// });
+
+
+const reportimg = async (err, data) => {
     if (err) {
         console.error('Error reading file:', err);
         return;
     }
-    
 
-    const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = findSpecialLinkTags(data);
+    const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = await findSpecialLinkTags(data);
 
 
     logReport("Emplty links", emptyLinks);
     logReport("# href", hrefHashLines);
     logReport(":hover class", hoverLines);
     logReport("table without role 'presenatation'", tableTags);
+}
 
-    // logReport("image is available", missingImages);
-    
-    // const links = tableReport("Emplty links", emptyLinks);
-    // const  href = tableReport("# href", hrefHashLines);
-    // hover = tableReport(":hover class", hoverLines);
-    // table = tableReport("table without role 'presenatation'", tableTags);
+fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));
 
 
-
-    // const reportTable = [
-    //     ["result", "type", "log"],
-    //     [links[0], links[1], links[2]],
-    //     [href[0], href[1], href[2]],
-    //     [hover[0], hover[1], hover[2]]
-    // ];
-    // console.table(reportTable)
-});
 
 
 
