@@ -1,4 +1,7 @@
 {
+  "name": "your-package-name",
+  "version": "1.0.0",
+  "main": "testScript.js",
   "devDependencies": {
     "axios": "^1.7.2",
     "html-dom-parser": "^5.0.8",
