@@ -1,7 +1,14 @@
 const fs = require('fs');
 const { parseDOM } = require('htmlparser2');
-const {parse} = require('html-dom-parser');
-// import parse from 'html-dom-parser';
+// const {parse} = require('html-dom-parser');
+
+
+// // Imports js
+const { logReport, tableTags} = require('./Output/complectReport');
+const { checkIsEmptyLinks, checkIsHashHref} = require('./Tests/linkValidation');
+const {checkIsRoleTable} = require('./Tests/tableValidation.js');
+const {checkSrc} = require('./Tests/readSource.js');
+// const { tableTags} = require('./Output/complectReport');
 
 
 
@@ -11,22 +18,6 @@ function getLineNumberFromPosition(html, position) {
     return lines.length;
 }
 
-// Validation
-function checkIsEmptyLinks(node) {
-    if (!node) throw new Error('HTML pasring error');
-    const emptyLink = !node.children.length || node.children.every(child => child.type === 'text' && !child.data.trim());
-    return emptyLink;
-}
-function checkIsHashHref(node) {
-    if (!node) throw new Error('HTML pasring error');
-    const hashLink = node.attribs && node.attribs.href === '#';
-    return hashLink;
-}
-function checkIsRoleTable(node) {
-    if (!node) throw new Error('HTML pasring error');
-    const hasRole = node.attribs && node.attribs.role === 'presentation';
-    return hasRole;
-}
 async function checkIsImageAvailable(node) {
     if (!node) throw new Error('HTML parsing error');
     const hasSrc = node.attribs && node.attribs.src;
@@ -43,23 +34,6 @@ async function checkIsImageAvailable(node) {
 
 
 
-
-
-function logReport(type, list) {
-    if (list?.length) console.log(`🔴 Faild:    ${type}: ${list.join(', ')}`);
-    else console.log(`🟢 Succeed:  ${type}`)
-}
-function tableReport(type, list) {    
-    let result = '🔴 Faild';
-    let log = ""
-    if (list?.length) log = `${type}: ${list.join(', ')}`;
-    else result = '🟢 Succeed'
-    return [result, type, log]
-}
-
-
-
-
 // Parse HTML and find special link tags and :hover pseudo-classes
 function findSpecialLinkTags(html) {
 
@@ -72,8 +46,14 @@ function findSpecialLinkTags(html) {
     const hoverLines = [];
     const tableTags = [];
     const missingImages = [];
+   
+
+    const {hasHtml, hasImages, markup, images} = checkSrc();
+    console.log(images);
 
 
+
+    
     function traverseNodes(nodes) {
         nodes.forEach(node => {
 
@@ -138,6 +118,8 @@ function findSpecialLinkTags(html) {
 
 
 
+
+
 // Get directory of test document
 const filePath = process.argv[2];
 
@@ -148,17 +130,23 @@ if (!filePath) {
 
 
 // Read document, trigger parsing
+
+
 fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
         console.error('Error reading file:', err);
         return;
     }
+    
+
     const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = findSpecialLinkTags(data);
+
 
     logReport("Emplty links", emptyLinks);
     logReport("# href", hrefHashLines);
     logReport(":hover class", hoverLines);
     logReport("table without role 'presenatation'", tableTags);
+
     // logReport("image is available", missingImages);
     
     // const links = tableReport("Emplty links", emptyLinks);

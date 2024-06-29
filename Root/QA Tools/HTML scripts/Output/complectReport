@@ -1,0 +1,14 @@
+
+function logReport(type, list) {
+    if (list?.length) console.log(`🔴 Faild:    ${type}: ${list.join(', ')}`);
+    else console.log(`🟢 Succeed:  ${type}`)
+}
+function tableReport(type, list) {    
+    let result = '🔴 Faild';
+    let log = ""
+    if (list?.length) log = `${type}: ${list.join(', ')}`;
+    else result = '🟢 Succeed'
+    return [result, type, log]
+}
+
+module.exports = {logReport, tableReport};
