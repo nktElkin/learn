@@ -6,6 +6,7 @@ const { parseDOM } = require('htmlparser2');
 // // Imports js
 const { logReport, tableTags} = require('./InputOutput/complectReport');
 const { checkIsEmptyLinks, checkIsHashHref} = require('./Tests/linkValidation');
+const {checkRegexPattern} = require('./Tests/regexValidation.js');
 const {checkIsRoleTable} = require('./Tests/tableValidation.js');
 const {checkSrc} = require('./Tests/readSource.js');
 const {parseHtmlDom} = require('./InputOutput/parseHtmlDom.js');
@@ -19,19 +20,19 @@ function getLineNumberFromPosition(html, position) {
     return lines.length;
 }
 
-async function checkIsImageAvailable(node) {
-    if (!node) throw new Error('HTML parsing error');
-    const hasSrc = node.attribs && node.attribs.src;
-    if (!hasSrc) {
-        return false;
-    }
-    try {
-        const response = await axios.head(node.attribs.src);
-        return response.status === 200;
-    } catch (error) {
-        return false;
-    }
-}
+// async function checkIsImageAvailable(node) {
+//     if (!node) throw new Error('HTML parsing error');
+//     const hasSrc = node.attribs && node.attribs.src;
+//     if (!hasSrc) {
+//         return false;
+//     }
+//     try {
+//         const response = await axios.head(node.attribs.src);
+//         return response.status === 200;
+//     } catch (error) {
+//         return false;
+//     }
+// }
 
 
 
@@ -53,17 +54,14 @@ async function findSpecialLinkTags(html) {
     const hoverLines = [];
     const tableTags = [];
     const missingImages = [];
-   
-
+    const regExPatterns = [];
 
 
     const {hasHtml, hasImages, markup, images} = await checkSrc();
-    console.log(images);
+    const imagesList = images !== null? images : [];
+    // console.log(images);
 
     if(hasHtml === null) return null;
-
-
-
 
     
     function traverseNodes(nodes) {
@@ -109,22 +107,32 @@ async function findSpecialLinkTags(html) {
                     //         break;
 
                 }
-              
+                
 
                 if (node.attribs && node.attribs.style && node.attribs.style.includes(':hover')) {
                     const lineNumber = getLineNumberFromPosition(html, node.startIndex);
                     hoverLines.push(lineNumber);
                 }
             }
+            
+            if(node.type === 'text' && node?.data){
+                const hasRegExPattern = checkRegexPattern(node) 
+                if(hasRegExPattern !== null && hasRegExPattern !== undefined){
+                    const {pattern, content} = hasRegExPattern;
+                    lineNumber = getLineNumberFromPosition(html, node.startIndex)
+                    regExPatterns.push(`${pattern} in node from ${lineNumber}`);
+                }
+            }
+
 
             if (node.children && node.children.length) {
                 traverseNodes(node.children);
             }
         });
     }
-    
+
     traverseNodes(dom);
-    return { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages };
+    return { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages, imagesList, regExPatterns };
 }
 
 
@@ -141,57 +149,20 @@ if (!filePath) {
 }
 
 
-// Read document, trigger parsing
-
-
-// fs.readFile(filePath, 'utf8', (err, data) => {
-// //      if (err) {
-//     console.error('Error reading file:', err);
-//     return;
-// }
-
-
-// const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = findSpecialLinkTags(data);
-
-
-// logReport("Emplty links", emptyLinks);
-// logReport("# href", hrefHashLines);
-// logReport(":hover class", hoverLines);
-// logReport("table without role 'presenatation'", tableTags);
-   
-
-//     // logReport("image is available", missingImages);
-    
-//     // const links = tableReport("Emplty links", emptyLinks);
-//     // const  href = tableReport("# href", hrefHashLines);
-//     // hover = tableReport(":hover class", hoverLines);
-//     // table = tableReport("table without role 'presenatation'", tableTags);
-
-
-
-//     // const reportTable = [
-//     //     ["result", "type", "log"],
-//     //     [links[0], links[1], links[2]],
-//     //     [href[0], href[1], href[2]],
-//     //     [hover[0], hover[1], hover[2]]
-//     // ];
-//     // console.table(reportTable)
-// });
-
-
 const reportimg = async (err, data) => {
     if (err) {
         console.error('Error reading file:', err);
         return;
     }
 
-    const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages} = await findSpecialLinkTags(data);
+    const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages, imagesList, regExPatterns} = await findSpecialLinkTags(data);
 
-
-    logReport("Emplty links", emptyLinks);
-    logReport("# href", hrefHashLines);
-    logReport(":hover class", hoverLines);
-    logReport("table without role 'presenatation'", tableTags);
+    logReport('images', ' ', imagesList);
+    logReport('tag', "Emplty links", emptyLinks);
+    logReport('tag', "# href", hrefHashLines);
+    logReport('tag', ":hover class", hoverLines);
+    logReport('tag', "table without role 'presenatation'", tableTags);
+    logReport('regex', "regEx pattern", regExPatterns);
 }
 
 fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));
@@ -202,9 +173,9 @@ fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));
 
 
 //TODO:
-    // 1. add alt text check for images - if is avalabel/not, is is field/not
-    // 2. add genetation of links hrefs, images alts, _lables (only valid) to csv/excel
-    // 3. add add regex validation
+    // 👍 1. add alt text check for images - if is avalabel/not, is is field/not
+    // 2. add generation of links hrefs, images alts, _lables (only valid) to csv/excel
+    // 👍⭕ - needed more 3. add add regex validation
     // 4. add check of meta tag validity
     // 5. add possibility to generate json/html of whole report to export functionality
 
