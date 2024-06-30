@@ -5,7 +5,8 @@ const { parseDOM } = require('htmlparser2');
 
 // // Imports js
 const { logReport, tableTags} = require('./InputOutput/complectReport');
-const { checkIsEmptyLinks, checkIsHashHref} = require('./Tests/linkValidation');
+const { checkIsEmptyLinks, checkIsHashHref, checkIsEmptyPath, checkIncorrectLable} = require('./Tests/linkValidation');
+const {checkIncorrectAlt, checkIsEmptySrc} = require('./Tests/imagesValidation.js');
 const {checkRegexPattern} = require('./Tests/regexValidation.js');
 const {checkIsRoleTable} = require('./Tests/tableValidation.js');
 const {checkSrc} = require('./Tests/readSource.js');
@@ -51,15 +52,21 @@ async function findSpecialLinkTags(html) {
     // List declaration
     const emptyLinks = [];
     const hrefHashLines = [];
+    const hrefIsEmpty = []
     const hoverLines = [];
     const tableTags = [];
     const missingImages = [];
+    const incorrectAlts = [];
     const regExPatterns = [];
+    const incorrectLable = [];
 
 
     const {hasHtml, hasImages, markup, images} = await checkSrc();
     const imagesList = images !== null? images : [];
     // console.log(images);
+
+    const lableList = [];
+    const altsList = [];
 
     if(hasHtml === null) return null;
 
@@ -71,10 +78,23 @@ async function findSpecialLinkTags(html) {
             if (node.type === 'tag') {
                 let lineNumber;
                 switch (node.name) {
+                    case 'img':
+                        const hasNoCorrectAlts = checkIncorrectAlt(node);
+                        lineNumber = getLineNumberFromPosition(html, node.startIndex);
+                        if(typeof hasNoCorrectAlts === 'string') altsList.push(`line ${lineNumber}: ${hasNoCorrectAlts}`);
+                        if (hasNoCorrectAlts && typeof hasNoCorrectAlts !== 'string') {
+                            incorrectAlts.push(lineNumber);
+                        }
                     case 'a':
                         const hasEmptyLabel = checkIsEmptyLinks(node);
                         const hasHrefHash = checkIsHashHref(node);
+                        const hasEmptyHrefPath = checkIsEmptyPath(node);
+                        const hasNoCorrectLables = checkIncorrectLable(node)
+                        
+                        // const hasIncorrect = checkIncorrectLable(node)
                         lineNumber = getLineNumberFromPosition(html, node.startIndex);
+                        if(typeof hasNoCorrectLables === 'string') lableList.push(`line ${lineNumber}: ${hasNoCorrectLables}`);
+                        
 
                         if (hasEmptyLabel) {
                             emptyLinks.push(lineNumber);
@@ -82,6 +102,13 @@ async function findSpecialLinkTags(html) {
                         if (hasHrefHash) {
                             hrefHashLines.push(lineNumber);
                         }
+                        if (hasEmptyHrefPath) {
+                            hrefIsEmpty.push(lineNumber);
+                        }
+                        if (hasNoCorrectLables && typeof hasNoCorrectLables !== 'string') {
+                            incorrectLable.push(lineNumber);
+                        }
+                        
                         break;
                     case 'style':
                         const styleContent = node.children[0] && node.children[0].data;
@@ -132,7 +159,12 @@ async function findSpecialLinkTags(html) {
     }
 
     traverseNodes(dom);
-    return { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages, imagesList, regExPatterns };
+    return { emptyLinks, hrefHashLines,
+        hoverLines, tableTags,
+        missingImages, imagesList,
+        regExPatterns, hrefIsEmpty,
+        lableList, incorrectLable,
+        altsList, incorrectAlts};
 }
 
 
@@ -155,14 +187,22 @@ const reportimg = async (err, data) => {
         return;
     }
 
-    const { emptyLinks, hrefHashLines, hoverLines, tableTags, missingImages, imagesList, regExPatterns} = await findSpecialLinkTags(data);
+    const { emptyLinks, hrefHashLines, hoverLines,
+            tableTags, missingImages, imagesList,
+            regExPatterns, hrefIsEmpty, lableList,
+            incorrectLable, incorrectAlts, altsList} = await findSpecialLinkTags(data);
 
-    logReport('images', ' ', imagesList);
+    logReport('list', 'images', imagesList);
     logReport('tag', "Emplty links", emptyLinks);
+    logReport('tag', "Emplty href path", hrefIsEmpty);
     logReport('tag', "# href", hrefHashLines);
     logReport('tag', ":hover class", hoverLines);
     logReport('tag', "table without role 'presenatation'", tableTags);
     logReport('regex', "regEx pattern", regExPatterns);
+    logReport('tag', "no _lable", incorrectLable);
+    logReport('list', 'lables', lableList);
+    logReport('tag', "no alts values", incorrectAlts);
+    logReport('list', 'alts', altsList);
 }
 
 fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));

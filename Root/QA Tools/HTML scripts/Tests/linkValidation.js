@@ -4,9 +4,28 @@ function checkIsEmptyLinks(node) {
     return emptyLink;
 }
 
+function checkIsEmptyPath(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?.href){
+        isEmptyPath = !node?.attribs?.href.trim();
+        return isEmptyPath;
+    }
+    else return true;
+}
 function checkIsHashHref(node) {
     if (!node) throw new Error('HTML pasring error');
-    const hashLink = node.attribs && node.attribs.href === '#';
+    const hashLink = node?.attribs && node?.attribs?.href === '#';
     return hashLink;
 }
-module.exports = {checkIsHashHref, checkIsEmptyLinks};
+
+function checkIncorrectLable(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?._lable){
+        lableValue = node?.attribs?._lable.trim();
+        if(!lableValue) return true
+        return lableValue;
+    }
+    return true;
+}
+
+module.exports = {checkIsHashHref, checkIsEmptyLinks, checkIsEmptyPath, checkIncorrectLable};
