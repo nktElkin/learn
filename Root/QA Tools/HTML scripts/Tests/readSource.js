@@ -5,7 +5,7 @@ const path = require('path');
 
 //TODO:
 // take from cmd like an argument
-const srcDirName = './Test_document';
+const srcDirName = './Src';
 
 const errorSnippet = (message) => {
     return  `💣 Error - ${message}`

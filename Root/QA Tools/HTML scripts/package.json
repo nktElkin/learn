@@ -4,6 +4,7 @@
   "main": "testScript.js",
   "devDependencies": {
     "axios": "^1.7.2",
+    "excel4node": "^1.8.2",
     "html-dom-parser": "^5.0.8",
     "htmlparser2": "^9.1.0"
   },

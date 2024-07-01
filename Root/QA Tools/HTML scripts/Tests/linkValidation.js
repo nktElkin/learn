@@ -18,14 +18,14 @@ function checkIsHashHref(node) {
     return hashLink;
 }
 
-function checkIncorrectLable(node){
+function checkIncorrectLabel(node){
     if (!node) throw new Error('HTML pasring error');
-    if(node?.attribs && node?.attribs?._lable){
-        lableValue = node?.attribs?._lable.trim();
+    if(node?.attribs && node?.attribs?._label){
+        lableValue = node?.attribs?._label.trim();
         if(!lableValue) return true
         return lableValue;
     }
     return true;
 }
 
-module.exports = {checkIsHashHref, checkIsEmptyLinks, checkIsEmptyPath, checkIncorrectLable};
+module.exports = {checkIsHashHref, checkIsEmptyLinks, checkIsEmptyPath, checkIncorrectLabel};

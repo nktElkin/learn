@@ -3,7 +3,7 @@ function logReport(type,testName, list) {
     switch(type){
         case "tag":
         case 'regex':
-            if (list?.length) console.log(`⭕ Faild:    ${testName}: ${list.join(', ')}`);
+            if (list?.length) console.log(`🔴 Faild:    ${testName}: ${list.join(', ')}`);
             else console.log(`🟢 Succeed:  ${testName}`);
             break;
         case 'list':
