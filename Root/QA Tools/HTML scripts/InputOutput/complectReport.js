@@ -1,5 +1,5 @@
 
-function logReport(type,testName, list) {
+function logReport(type,testName, list, message = '') {
     switch(type){
         case "tag":
         case 'regex':
@@ -11,11 +11,21 @@ function logReport(type,testName, list) {
             if (list?.length) console.log(`🟢 Succeed:  ${testName} availability: ${list.join(',')}`);
             else console.log(`🔴 Faild:    ${testName} availability: no ${testName} found`);
             break;
+        case 'value':
+            if (message) console.log(`🟢 Succeed:  ${testName}: ${message}`);
+            else console.log(`🔴 Faild:    ${testName}: missing ${testName}`);
+            break;
         default:
         
             break;
     }
 }
+// function logReport(type,testName, message=  '') {
+//             if (message) console.log(`🟢 Succeed:  ${testName}: ${message}`);
+//             else console.log(`🔴 Faild:    ${testName}: missing ${testName}`);
+          
+// }
+
 function tableReport(testName, list) {    
     let result = '🔴 Faild';
     let log = ""

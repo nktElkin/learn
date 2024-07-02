@@ -8,6 +8,7 @@ const { logReport, tableTags} = require('./InputOutput/complectReport.js');
 const { checkIsEmptyLinks, checkIsHashHref, checkIsEmptyPath, checkIncorrectLabel} = require('./Tests/linkValidation.js');
 const {checkIncorrectAlt, checkIsEmptySrc} = require('./Tests/imagesValidation.js');
 const {checkRegexPattern} = require('./Tests/regexValidation.js');
+const {checkMeta, checkLang} = require('./Tests/headValidation.js');
 const {checkIsRoleTable} = require('./Tests/tableValidation.js');
 const {checkSrc} = require('./Tests/readSource.js');
 const {parseHtmlDom} = require('./InputOutput/parseHtmlDom.js');
@@ -59,17 +60,20 @@ async function findSpecialLinkTags(html) {
     const incorrectAlts = [];
     const regExPatterns = [];
     const incorrectLabel = [];
-
-
+    
+    let correctMetaData = true; // false if incorrect
+    let langData = ''; // false if incorrect, value if correct
+    
+    
     const {hasHtml, hasImages, markup, images} = await checkSrc();
     const imagesList = images !== null? images : [];
-    // console.log(images);
-
+    
     const labelList = [];
     const altsList = [];
-
+    // console.log(images);
+    
     if(hasHtml === null) return null;
-
+    
     
     function traverseNodes(nodes) {
         if(!Array.isArray(nodes)) nodes = [nodes];
@@ -117,6 +121,23 @@ async function findSpecialLinkTags(html) {
                             hoverLines.push(lineNumber);
                         }
                         break;
+
+                    case 'html':
+                        const hasLang = checkLang(node); //false if incorrect
+                        if(!hasLang && typeof hasLang === 'boolean'){
+                            langData = false;
+                        }
+                        lineNumber = getLineNumberFromPosition(html, node.startIndex);
+                        if(typeof hasLang === 'string') langData = `line ${lineNumber}: language is ${hasLang}`;
+                        break;
+
+                    case 'meta':
+                        if(node?.attribs?.content && !node?.attribs?.name){
+                            correctMetaData = checkMeta(node); // false if incorrect
+                            //  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                        }
+                        break;
+
                     case 'table':
                             const hasRolePresentation = checkIsRoleTable(node);
                             if (!hasRolePresentation){
@@ -159,12 +180,15 @@ async function findSpecialLinkTags(html) {
     }
 
     traverseNodes(dom);
+
+    // exports
     return { emptyLinks, hrefHashLines,
         hoverLines, tableTags,
         missingImages, imagesList,
         regExPatterns, hrefIsEmpty,
         labelList, incorrectLabel,
-        altsList, incorrectAlts};
+        altsList, incorrectAlts,
+        correctMetaData, langData};
 }
 
 
@@ -190,7 +214,8 @@ const reportimg = async (err, data) => {
     const { emptyLinks, hrefHashLines, hoverLines,
             tableTags, missingImages, imagesList,
             regExPatterns, hrefIsEmpty, labelList,
-            incorrectLabel, incorrectAlts, altsList} = await findSpecialLinkTags(data);
+            incorrectLabel, incorrectAlts, altsList,
+            correctMetaData, langData} = await findSpecialLinkTags(data);
 
     logReport('list', 'images', imagesList);
     logReport('tag', "Emplty links", emptyLinks);
@@ -203,6 +228,8 @@ const reportimg = async (err, data) => {
     logReport('list', 'labels', labelList);
     logReport('tag', "no alts values", incorrectAlts);
     logReport('list', 'alts', altsList);
+    logReport('value', 'meta tag', [], correctMetaData);
+    logReport('value', 'language', [], langData);
 }
 
 fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));

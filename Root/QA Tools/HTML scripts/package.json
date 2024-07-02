@@ -9,6 +9,6 @@
     "htmlparser2": "^9.1.0"
   },
   "scripts": {
-    "start": "node ./testScript.js ./Test_document/email.html"
+    "start": "node ./testScript.js ./Src/index.html"
   }
 }

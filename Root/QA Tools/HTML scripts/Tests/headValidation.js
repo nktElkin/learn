@@ -1,14 +1,14 @@
 /**
  * Validate if meta is correct
  *
- * @returns true - correct
- * @returns false - incorrect
+ * @returns {boolean} true - correct
+ * @returns {boolean} false - incorrect
  * 
- * @param object json node (html dom node)
+ * @param {object} node - json object (html dom node)
  */
 function checkMeta(node){
     if(!node) throw new Error("error, no node in checIncorrectkMeta");
-    if(node?.attrib && node?.attrib?.content && node?.attrib?.content.trim() === "text/html; charset=utf-8")
+    if(node?.attribs && node?.attribs?.content && node?.attribs?.content.includes('charset=utf-8'))
         return true;
     return false;
 }
@@ -16,18 +16,19 @@ function checkMeta(node){
 
 /**
  * Validate if set lang in html head
- *
- * @returns value of attribute lang - was set, correct
- * @returns false - not found, is incorrect
  * 
- * @param object json node (html dom node)
+ * @param {object} node - json object (html dom node)
+ * 
+ * @returns {string} value of attribute lang - was set, correct
+ * @returns {boolean} false - incorrect
+ * 
  */
 
 function checkLang(node){
     if(!node) throw new Error("error, no node in checkIncorrectLang");
-    if(node?.attrib && node?.attrib?.lang && node?.attrib?.lang.trim() !== "")
-        return node.attrib.lang;
+    if(node?.attribs && node?.attribs?.lang && node?.attribs?.lang.trim() !== "")
+        return node.attribs.lang;
     return false;
 }
 
-method.exports = {checkMeta, checkLang};
+module.exports = {checkMeta, checkLang};
