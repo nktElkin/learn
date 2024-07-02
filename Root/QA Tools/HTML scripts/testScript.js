@@ -89,6 +89,8 @@ async function findSpecialLinkTags(html) {
                         if (hasNoCorrectAlts && typeof hasNoCorrectAlts !== 'string') {
                             incorrectAlts.push(lineNumber);
                         }
+                        
+                        break;
                     case 'a':
                         const hasEmptyLabel = checkIsEmptyLinks(node);
                         const hasHrefHash = checkIsHashHref(node);
