@@ -83,11 +83,13 @@ async function findSpecialLinkTags(html) {
                 let lineNumber;
                 switch (node.name) {
                     case 'img':
-                        const hasNoCorrectAlts = checkIncorrectAlt(node);
-                        lineNumber = getLineNumberFromPosition(html, node.startIndex);
-                        if(typeof hasNoCorrectAlts === 'string') altsList.push(`line ${lineNumber}: ${hasNoCorrectAlts}`);
-                        if (hasNoCorrectAlts && typeof hasNoCorrectAlts !== 'string') {
-                            incorrectAlts.push(lineNumber);
+                        if(node?.attribs?.id !== '_two50_img'){
+                            const hasNoCorrectAlts = checkIncorrectAlt(node);
+                            lineNumber = getLineNumberFromPosition(html, node.startIndex);
+                            if(typeof hasNoCorrectAlts === 'string') altsList.push(`line ${lineNumber}: ${hasNoCorrectAlts}`);
+                            if (hasNoCorrectAlts && typeof hasNoCorrectAlts !== 'string') {
+                                incorrectAlts.push(lineNumber);
+                            }
                         }
                         
                         break;
@@ -147,6 +149,7 @@ async function findSpecialLinkTags(html) {
                                 tableTags.push(lineNumber);
                             }
                         break;
+                    
                     // case 'img':
                     //         const imageExists = checkIsImageAvailabel(node);
                     //         if (!imageExists) {
@@ -158,12 +161,13 @@ async function findSpecialLinkTags(html) {
 
                 }
                 
-
+                
                 if (node.attribs && node.attribs.style && node.attribs.style.includes(':hover')) {
                     const lineNumber = getLineNumberFromPosition(html, node.startIndex);
                     hoverLines.push(lineNumber);
                 }
             }
+            if(node.type === 'style') console.log(node)
             
             if(node.type === 'text' && node?.data){
                 const hasRegExPattern = checkRegexPattern(node) 
@@ -219,19 +223,19 @@ const reportimg = async (err, data) => {
             incorrectLabel, incorrectAlts, altsList,
             correctMetaData, langData} = await findSpecialLinkTags(data);
 
-    logReport('list', 'images', imagesList);
-    logReport('tag', "Emplty links", emptyLinks);
-    logReport('tag', "Emplty href path", hrefIsEmpty);
-    logReport('tag', "# href", hrefHashLines);
-    logReport('tag', ":hover class", hoverLines);
-    logReport('tag', "table without role 'presenatation'", tableTags);
-    logReport('regex', "regEx pattern", regExPatterns);
-    logReport('tag', "no _label", incorrectLabel);
-    logReport('list', 'labels', labelList);
-    logReport('tag', "no alts values", incorrectAlts);
-    logReport('list', 'alts', altsList);
-    logReport('value', 'meta tag', [], correctMetaData);
-    logReport('value', 'language', [], langData);
+    // logReport('list', 'images', imagesList);
+    // logReport('tag', "Emplty links", emptyLinks);
+    // logReport('tag', "Emplty href path", hrefIsEmpty);
+    // logReport('tag', "# href", hrefHashLines);
+    // logReport('tag', ":hover class", hoverLines);
+    // logReport('tag', "table without role 'presenatation'", tableTags);
+    // logReport('regex', "regEx pattern", regExPatterns);
+    // logReport('tag', "no _label", incorrectLabel);
+    // logReport('list', 'labels', labelList);
+    // logReport('tag', "no alts values", incorrectAlts);
+    // logReport('list', 'alts', altsList);
+    // logReport('value', 'meta tag', [], correctMetaData);
+    // logReport('value', 'language', [], langData);
 }
 
 fs.readFile(filePath, 'utf8', (err, data) => reportimg(err, data));

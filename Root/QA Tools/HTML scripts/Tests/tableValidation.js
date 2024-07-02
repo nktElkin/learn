@@ -9,7 +9,7 @@
  */
 function checkIsRoleTable(node) {
     if (!node) throw new Error('HTML pasring error');
-    console.log(node?.children.type === 'text')
+    // console.log(node?.children.type === 'text')
     if(node?.children &&  node.children[0].type === 'text' && node.children[0].data.trim() !== ""){
         const hasRole = node?.attribs && node?.attribs?.role === 'presentation' // true if correct
         return hasRole;
