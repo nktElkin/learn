@@ -1,25 +1,17 @@
-/**
-* Represents an issue found during validation.
-* @typedef {Object} Issue
-* @property {string} issueType - The type of issue ('bug', 'info').
-* @property {string} validationType - The type of validation that was performed.
-* @property {number} line - The line number where the issue was found.
-* @property {boolean} valid - Whether the validation passed or failed.
-* @property {string} message - A descriptive message about the issue.
- */
+// imports
+const {checkImageAls, checkImageSrc, getImageAls, getImageSrc} = require('./Tests_V2/imageValidation');
+const {checkHrefPath, checkHashHref, checkLinkContent , checkLinkLabel, getLinkLabel} = require('./Tests_V2/linkValidation');
+const {checkTableRole} = require('./Tests_V2/tableValidation');
+const {checkRegexPatternToArray} = require('./Tests_V2/regexValidation');
+const {getLang, checkMeta} = require('./Tests_V2/headValidation');
+
+
+
 
 /**
  * @typedef {Array<Issue>} ListOfIssues
 */
 
-/** @type {Issue} */
-const issue = {
-    issueType: '',
-    validationType: '',
-    line: 0,
-    valid: true,
-    message: ''
-};
 
 
 /**
@@ -40,6 +32,10 @@ const { parseHtmlDom } = require('./parseHtml')
 
 /**
  * Get line number in html
+ * 
+ * @param {string} html - markup
+ * @param {number} position - start index of node
+ * @returns {number} line position od node
  * 
 */
 function getLineNumberFromPosition(html, position) {
@@ -71,10 +67,7 @@ async function analizeDocument(html) {
          */
         const infosList = [];
 
-
-
         /**
-         * @typedef {Function} pushResult
          * Pushes the result of a validation into the appropriate list based on its type.
          * 
          * @param {Issue} targetObject - The target object containing validation information.
@@ -91,252 +84,132 @@ async function analizeDocument(html) {
         }
 
 
-
-
-
         function traverseNodes(nodes) {
             if (!Array.isArray(nodes)) nodes = [nodes];
             nodes.forEach(node => {
-                // define line position of current line
-                const nodePositionLine = getLineNumberFromPosition(html, node.startIndex);
+
+                // calculate line position of current line
+                const lineNumber = getLineNumberFromPosition(html, node.startIndex);
+
+                // node type: tag
                 if (node?.type === 'tag') {
                     switch (node.name) {
                         case 'img':
-                            // validationType: alts availability
-                            const altsRes = {};
-                            if (!altsRes) throw new Error('Error during alts validation');
-                            if (!altsRes.valid) bugsList.push({ ...issue, issueType: 'bug', validationType: altsRes.validationType, line: lineNumber })
-                            else messagesList.push({ ...issue, issueType: 'info', validationType: altsRes.validationType, line: lineNumber, message: res.message });
-                            // validationType: src availability
-                            const srcRes = {};
-                            pushResult(srcRes, 'Error during src validation', lineNumber);
-
-
-
-
-
+                            // invoke:
+                            if(node?.attribs?.id !== '_two50_img'){
+                                // validationType: 'alt availability'
+                                const imageAltRes = checkImageAls(node);
+                                pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
+                                if(imageAltRes.valid === 'true'){
+                                    const imageAlt = getImageAls(node);
+                                    pushResult(imageAlt, 'Error during image alt validation', lineNumber);
+                                }
+                                
+                                // validationType: 'src availability'
+                                const imageSrcRes = checkImageSrc(node);
+                                pushResult(imageSrcRes, 'Error during image src validation', lineNumber);
+                                if(imageSrcRes.valid === 'true'){
+                                    const imagaSrc = getImageSrc(node);
+                                    pushResult(imagaSrc, 'Error during image src validation', lineNumber);
+                                }
+                            }
                             break;
+                            // {, getLinkLabel}
                         case 'a':
-                            const linkContentRes = {};
+                            // validationType: link content
+                            const linkContentRes = checkLinkContent(node);
                             pushResult(linkContentRes, 'Error during link content validation', lineNumber)
-                            const linkHashPathRes = {};
-                            pushResult(linkHashPathRes, 'Error during link content validation', lineNumber)
-                            const linkHrefRes = {};
-                            pushResult(linkHrefRes, 'Error during link content validation', lineNumber)
-                            const linkLabelRes = {};
-                            pushResult(linkLabelRes, 'Error during link content validation', lineNumber);
-                            if (linkLabelRes?.valid === true) pushResult({ ...linkLabelRes, issueType: 'info', message: node?.attribs?._label.trim() }, 'Error during link content validation', lineNumber)
+
+                            // validationType: # in href path
+                            const linkHashPathRes = checkHashHref(node);
+                            pushResult(linkHashPathRes, 'Error during link href validation', lineNumber)
+
+                            // validationType: link href path
+                            const linkHrefRes = checkHrefPath(node);
+                            pushResult(linkHrefRes, 'Error during link href validation', lineNumber)
+
+                            // validationType: _label validation
+                            const linkLabelRes = checkLinkLabel(node);
+                            pushResult(linkLabelRes, 'Error during link label validation', lineNumber);
+                            if (linkLabelRes?.valid === true){
+                                const linkLabel = getLinkLabel(node);
+                                pushResult(linkLabel, 'Error during link label validation', lineNumber); 
+                            }
+                            break;
+                        case 'table':
+                            // validationType: table role validation
+                            const tableRoleRes = checkTableRole(node);
+                            pushResult(tableRoleRes, 'Error during image alt validation', lineNumber);
+                            break;    
+                        case 'html':
+                            // validationType: lang validation
+                            const langRes = getLang(node);
+                            pushResult(langRes,'Error during lang validation', lineNumber);
+                            break;
+                        case 'meta':
+                            // validationType: encoding type
+                            const metaRes = checkMeta(node);
+                            pushResult(metaRes,'Error during encoding type validation', lineNumber);
                             break;
                     }
+                }
 
+                // node type: style
+                if(node?.type === 'style'){
+                    if (node?.attribs?.data) {
+                        // validationType: hover validation
+                        const hasHoverClass = node?.attribs?.data.includes(':hover')
+                        pushResult({...issue,
+                            issueType: 'bug', valid: !hasHoverClass, validationType: 'hover validation'},
+                            'Error during hover pseudo-class validation', lineNumber);
+                        
+                        // validationType: style #_two50
+                        const specialStyle = node?.attribs?.data.includes('#_two50');
+                        const hasSpecialStile = Boolean(specialStyle);
+                        // if has -> issueType: info, else issueType: bug 
+                        pushResult({...issue,
+                            issueType: hasSpecialStile ? 'info' : 'bug', valid: hasSpecialStile, validationType: 'style #_two50',
+                            message: !hasSpecialStyle ? specialStyle : ''},
+                            'Error during special class validation', lineNumber);
+                    }
+                }
 
+                // node type: text
+                if(node?.type === 'text' && node?.data){
+                    // validationType: regEx validation
+                    const regexPatternRes = checkRegexPatternToArray(node);
+                    if(regexPatternRes.length){
+                        regexPatternRes.forEach(res => pushResult(res, 'Error during regEx validation', lineNumber));
+                    }
                 }
             })
         }
 
 
-
-
-
-
-
-
         traverseNodes(dom);
-    } catch (err) { }
-}
-
-
-
-
-
-
-
-function checkLang(node) {
-    if (!node) throw new Error("error, no node in checkIncorrectLang");
-    if (node?.attrib && node?.attrib?.lang && node?.attrib?.lang.trim() !== "")
-        return { issueType: 'info', validationType: 'lang validation', valid: true, message: node.attrib.lang };
-    return { issueType: 'bug', validationType: 'lang validation', valid: false };
-}
-
-
-function checkMeta(node) {
-    if (!node) throw new Error("error, no node in checIncorrectkMeta");
-    if (node?.attribs && node?.attribs?.content && node?.attribs?.content.includes('charset=utf-8'))
-        return { issueType: 'bug', valid: true };
-    return { issueType: 'bug', validationType: 'encoding type', valid: false };
-}
-
-
-
-// ---------------------------links validation overrides
-
-
-/**
- * @type {ValidationFunction}
-*/
-function checkLinkContent(node) {
-    if (!node) throw new Error('HTML pasring error');
-    const hasBlankLinkContent = Boolean(!node.children.length || node.children.every(child => child.type === 'text' && !child.data.trim()));
-    return { ...issue, issueType: 'bug', validationType: 'links content', valid: !hasBlankLinkContent };
-}
-
-function checkHrefPath(node) {
-    if (!node) throw new Error('HTML pasring error');
-    if (node?.attribs && node?.attribs?.href) {
-        hasHrefPath = Boolean(node?.attribs?.href.trim());
-        return { ...issue, issueType: 'bug', validationType: 'link href path', valid: hasHrefPath };
-    }
-    else return { ...issue, issueType: 'bug', validationType: 'link href path', valid: false };;
-}
-
-function checkHashHref(node) {
-    if (!node) throw new Error('HTML pasring error');
-    const hasHashLink = Boolean(node?.attribs && node?.attribs?.href === '#');
-    return { ...issue, issueType: 'bug', validationType: '# in href path', valid: !hasHashLink };
-}
-
-function checkLinkLabel(node) {
-    if (!node) throw new Error('HTML pasring error');
-    if (node?.attribs && node?.attribs?._label) {
-        const hasLinkLabel = Boolean(node?.attribs?._label.trim());
-        return { ...issue, issueType: 'bug', validationType: '_label validation', valid: hasLabel };
-    }
-    return { ...issue, issueType: 'bug', validationType: '_label validation', valid: false };
-}
-
-function getLinkLabel(node) {
-    if (!node) throw new Error('HTML pasring error');
-    if (node?.attribs && node?.attribs?._label) {
-        const linkLabel = node?.attribs?._label.trim();
-        return { ...issue, issueType: 'info', validationType: '_label validation', valid: Boolean(linkLabel), message: linkLabel };
-    }
-    return { ...issue, issueType: 'info', validationType: '_label validation', valid: false };
-}
-
-// module.exports = {checkHrefPath, checkHashHref, checkLinkContent , checkLinkLabel, getLinkLabel}
-
-
-// ---------------------------style validation overrides
-
-// case 'style'"
-
-if (node?.attribs?.data) {
-    // validationType: hover validation
-    const hasHoverClass = node?.attribs?.data.includes(':hover')
-    pushResult({...issue, issueType: 'bug', valid: !hasHoverClass, validationType: 'hover validation'},'error during hover pseudo-class validation', lineNumber);
-    
-    // validationType: style #_two50
-    const specialStyle = node?.attribs?.data.includes('#_two50');
-    const hasSpecialStile = Boolean(specialStyle);
-    pushResult({...issue, issueType: hasSpecialStile ? 'info' : 'bug', valid: hasSpecialStile, validationType: 'style #_two50', message: !hasSpecialStyle ? specialStyle : ''},'error during special class validation', lineNumber);
-}
-
-// ---------------------------images validation overrides
-
-// const issue = require();
-
-/** 
- * @type {ValidationFunction} 
- * @param {object} node
- * @returns {Issue} issue object
-*/
-function checkImageSrc(node){
-    if (!node) throw new Error('HTML pasring error');
-    if(node?.attribs && node?.attribs?.src){
-        const hasSrc = Boolean(node?.attribs?.src.trim());
-        return {...issue, issueType: 'bug', validationType: 'src availability', valid: hasSrc};
-    }
-    else return {...issue, issueType: 'bug', validationType: 'src availability', valid: false};
-}
-
-function getImageSrc(node){
-    if (!node) throw new Error('HTML pasring error');
-    if(node?.attribs && node?.attribs?.src){
-        const imageSrc = node?.attribs?.src.trim();
-        return {...issue, issueType: 'info', validationType: 'src availability', valid: Boolean(imageSrc), message: hasSrc};
-    }
-    else return {...issue, issueType: 'info', validationType: 'src availability', valid: false};
-}
-
-
-/**@type {ValidationFunction} */
-function checkImageAls(node){
-    if (!node) throw new Error('HTML pasring error');
-    if(node?.attribs && node?.attribs?.alt){
-        const hasAlt = Boolean(node?.attribs?.alt.trim());
-        return {...issue, issueType: 'bug', validationType: 'alt availability', valid: hasAlt};
-    }
-    return {...issue, issueType: 'bug', validationType: 'alt availability', valid: false};
-}
-
-function getImageAls(node){
-    if (!node) throw new Error('HTML pasring error');
-    if(node?.attribs && node?.attribs?.alt){
-        const imageAlt = node?.attribs?.alt.trim();
-        return {...issue, issueType: 'info', validationType: 'alt availability', valid: Boolean(imageAlt), message: imageAlt};
-    }
-    return {...issue, issueType: 'info', validationType: 'alt availability', valid: false};
-}
-
-// module.exports = {checkImageAls, checkImageSrc, getImageAls, getImageSrc};
-
-// invoke:
-if(node?.attribs?.id !== '_two50_img'){
-    const imageAltRes = checkImageAls(node);
-    pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
-    if(imageAltRes.valid === 'true'){
-        const imageAltRes = getImageAls(node);
-        pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
-    }
-    
-    const imageSrcRes = checkImageSrc(node);
-    pushResult(imageSrcRes, 'Error during image src validation', lineNumber);
-    if(imageSrcRes.valid === 'true'){
-        const imagSrcRes = getImageSrc(node);
-        pushResult(imagSrcRes, 'Error during image src validation', lineNumber);
+    } catch (err) {
+        console.error(err);
     }
 }
 
 
-// ---------------------------table validation overrides
-
-function checkTableRole(node) {
-    if (!node) throw new Error('HTML pasring error');
-    
-    if(node?.children &&  node?.children.every(child => child.type === 'text' && child.data.trim() !== "")){
-        const hasRole = Boolean(node.attribs && node.attribs.role === 'presentation');
-        return {...issue, issueType: 'bug', validationType: 'table role validation', valid: hasRole};
-    }
-    return {...issue, issueType: 'bug', valid: true};  
-}
-// module.exports = {checkTableRole};
-
-//invoke:
-const tableRoleRes = checkTableRole(node);
-pushResult(tableRoleRes, 'Error during image alt validation', lineNumber);
 
 
-// ---------------------------regEx validation overrides
 
-const regExs = ["<%=([^>]*)<%", "%[0-9].*"]; // test regExs
-const regExIssues = []; // acc of found issues
 
-function checkRegexPatternToArray(node){
-    if (!node) throw new Error('HTML pasring error');
-    if(node.type === 'text' && node?.data){
-        regExs.forEach(ex => {
-            if (ex.test(node.data)) regExIssues.push({...issue, issueType: 'bug', validationType: 'regEx validation', valid: false, message: `${ex} : ${node.data}`});
-        })
-    }
-}
 
-// module.exports = {checkRegexPatternToArray};
 
-//invoke:
-const regexPatternRes = checkRegexPatternToArray(node);
-if(regexPatternRes.length){
-    regexPatternRes.forEach(res => pushResult(res, 'Error during regEx validation', lineNumber));
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
