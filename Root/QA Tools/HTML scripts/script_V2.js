@@ -5,6 +5,7 @@ const {checkTableRole} = require('./Tests_V2/tableValidation');
 const {checkRegexPatternToArray} = require('./Tests_V2/regexValidation');
 const {getLang, checkMeta} = require('./Tests_V2/headValidation');
 
+const { parseHtmlDom } = require('./parseHtml')
 
 
 
@@ -24,7 +25,6 @@ const {getLang, checkMeta} = require('./Tests_V2/headValidation');
 
 
 
-const { parseHtmlDom } = require('./parseHtml')
 
 
 
@@ -47,10 +47,11 @@ function getLineNumberFromPosition(html, position) {
 
 
 /**
- * @type {Function} analizer
+ * @async
+ * @function
  * @param {object} html
- * @returns {Promise<object | null>} 
- * @returns {Error} 
+ * @returns {Promise<Array<import('./config').Issue>>} bugsList, infosList
+ * @returns {Error}
 */
 async function analizeDocument(html) {
     try {
@@ -187,10 +188,47 @@ async function analizeDocument(html) {
 
 
         traverseNodes(dom);
+        return {bugsList, infosList};
+
     } catch (err) {
         console.error(err);
     }
 }
+
+
+
+
+// read cmd
+const cmdRequest = process.argv;
+if(!cmdRequest[2]){
+    console.error("path to markup file wasn't provided");
+    process.exit(1);
+
+} 
+const markupFile = process.argv[2];
+
+
+const getReport = async (err, data) => {
+    if (err) {
+        console.error('Error reading file:', err);
+        return;
+    }
+    try {
+        const {bugsList, infosList} = await analizeDocument(data)
+        // override report function
+        // .
+        // .
+        // .
+
+
+    } catch (error) {
+        console.error("💣 error during the process");
+        process.exit(1);
+    }
+} 
+
+
+fs.readFile(markupFile, 'utf8', (err, data) => getReport(err, data));
 
 
 
