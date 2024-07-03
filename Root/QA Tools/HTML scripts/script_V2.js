@@ -22,6 +22,15 @@ const issue = {
 };
 
 
+/**
+ * @typedef {Function} ValidationFunction
+ * 
+ * @param {object} node - json object of html node
+ * @returns {Issue}
+ * @throws {Error} err in case node wasn't passed
+ */
+
+
 
 const { parseHtmlDom } = require('./parseHtml')
 
@@ -75,7 +84,9 @@ async function analizeDocument(html) {
          */
         function pushResult(targetObject, errorMessage, lineNumber = 0) {
             if (!targetObject) throw new Error(errorMessage);
-            if (!targetObject.valid && targetObject.issueType === 'bug') bugsList.push({ ...targetObject, issueType: 'bug', validationType: targetObject.validationType, line: lineNumber })
+            // issueType === 'bug' && valid: false => push to bugsList
+            if (!targetObject.valid && targetObject.issueType === 'bug') bugsList.push({ ...targetObject, issueType: 'bug', validationType: targetObject.validationType, line: lineNumber})
+            // issueType === 'unfo' && valid: true => push to infosList
             else if (targetObject.valid && targetObject.issueType === 'info') infosList.push({ ...targetObject, issueType: 'info', validationType: targetObject.validationType, line: lineNumber, message: targetObject.message });
         }
 
@@ -159,25 +170,20 @@ function checkMeta(node) {
 
 // ---------------------------links validation overrides
 
-/**
- * @typedef {Function} ValidationFunction
- * @returns {Issue} 
-*/
-
 
 /**
  * @type {ValidationFunction}
 */
 function checkLinkContent(node) {
     if (!node) throw new Error('HTML pasring error');
-    const emptyLink = !node.children.length || node.children.every(child => child.type === 'text' && !child.data.trim());
-    return { ...issue, issueType: 'bug', validationType: 'links content', valid: emptyLink };
+    const hasBlankLinkContent = Boolean(!node.children.length || node.children.every(child => child.type === 'text' && !child.data.trim()));
+    return { ...issue, issueType: 'bug', validationType: 'links content', valid: !hasBlankLinkContent };
 }
 
 function checkHrefPath(node) {
     if (!node) throw new Error('HTML pasring error');
     if (node?.attribs && node?.attribs?.href) {
-        hasHrefPath = node?.attribs?.href.trim();
+        hasHrefPath = Boolean(node?.attribs?.href.trim());
         return { ...issue, issueType: 'bug', validationType: 'link href path', valid: hasHrefPath };
     }
     else return { ...issue, issueType: 'bug', validationType: 'link href path', valid: false };;
@@ -185,20 +191,29 @@ function checkHrefPath(node) {
 
 function checkHashHref(node) {
     if (!node) throw new Error('HTML pasring error');
-    const hasHashLink = node?.attribs && node?.attribs?.href === '#';
+    const hasHashLink = Boolean(node?.attribs && node?.attribs?.href === '#');
     return { ...issue, issueType: 'bug', validationType: '# in href path', valid: !hasHashLink };
 }
 
-function checkLabel(node) {
+function checkLinkLabel(node) {
     if (!node) throw new Error('HTML pasring error');
     if (node?.attribs && node?.attribs?._label) {
-        lableValue = node?.attribs?._label.trim();
-        return { ...issue, issueType: 'bug', validationType: '_label validation', valid: lableValue };
+        const hasLinkLabel = Boolean(node?.attribs?._label.trim());
+        return { ...issue, issueType: 'bug', validationType: '_label validation', valid: hasLabel };
     }
     return { ...issue, issueType: 'bug', validationType: '_label validation', valid: false };
 }
 
-// module.exports = {checkHrefPath, checkHashHref, checkLabel, checkLinkContent}
+function getLinkLabel(node) {
+    if (!node) throw new Error('HTML pasring error');
+    if (node?.attribs && node?.attribs?._label) {
+        const linkLabel = node?.attribs?._label.trim();
+        return { ...issue, issueType: 'info', validationType: '_label validation', valid: Boolean(linkLabel), message: linkLabel };
+    }
+    return { ...issue, issueType: 'info', validationType: '_label validation', valid: false };
+}
+
+// module.exports = {checkHrefPath, checkHashHref, checkLinkContent , checkLinkLabel, getLinkLabel}
 
 
 // ---------------------------style validation overrides
@@ -211,17 +226,117 @@ if (node?.attribs?.data) {
     pushResult({...issue, issueType: 'bug', valid: !hasHoverClass, validationType: 'hover validation'},'error during hover pseudo-class validation', lineNumber);
     
     // validationType: style #_two50
-    const hasSpecialStyle = node?.attribs?.data.includes('#_two50')
-    pushResult({...issue, issueType: 'info', valid: hasSpecialStyle, validationType: 'style #_two50'},'error during special class validation', lineNumber);
+    const specialStyle = node?.attribs?.data.includes('#_two50');
+    const hasSpecialStile = Boolean(specialStyle);
+    pushResult({...issue, issueType: hasSpecialStile ? 'info' : 'bug', valid: hasSpecialStile, validationType: 'style #_two50', message: !hasSpecialStyle ? specialStyle : ''},'error during special class validation', lineNumber);
+}
+
+// ---------------------------images validation overrides
+
+// const issue = require();
+
+/** 
+ * @type {ValidationFunction} 
+ * @param {object} node
+ * @returns {Issue} issue object
+*/
+function checkImageSrc(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?.src){
+        const hasSrc = Boolean(node?.attribs?.src.trim());
+        return {...issue, issueType: 'bug', validationType: 'src availability', valid: hasSrc};
+    }
+    else return {...issue, issueType: 'bug', validationType: 'src availability', valid: false};
+}
+
+function getImageSrc(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?.src){
+        const imageSrc = node?.attribs?.src.trim();
+        return {...issue, issueType: 'info', validationType: 'src availability', valid: Boolean(imageSrc), message: hasSrc};
+    }
+    else return {...issue, issueType: 'info', validationType: 'src availability', valid: false};
 }
 
 
-
-
-
-const styleContent = node.children[0] && node.children[0].data;
-if (styleContent && styleContent.includes(':hover')) {
-    lineNumber = getLineNumberFromPosition(html, node.startIndex);
-    hoverLines.push(lineNumber);
+/**@type {ValidationFunction} */
+function checkImageAls(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?.alt){
+        const hasAlt = Boolean(node?.attribs?.alt.trim());
+        return {...issue, issueType: 'bug', validationType: 'alt availability', valid: hasAlt};
+    }
+    return {...issue, issueType: 'bug', validationType: 'alt availability', valid: false};
 }
+
+function getImageAls(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node?.attribs && node?.attribs?.alt){
+        const imageAlt = node?.attribs?.alt.trim();
+        return {...issue, issueType: 'info', validationType: 'alt availability', valid: Boolean(imageAlt), message: imageAlt};
+    }
+    return {...issue, issueType: 'info', validationType: 'alt availability', valid: false};
+}
+
+// module.exports = {checkImageAls, checkImageSrc, getImageAls, getImageSrc};
+
+// invoke:
+if(node?.attribs?.id !== '_two50_img'){
+    const imageAltRes = checkImageAls(node);
+    pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
+    if(imageAltRes.valid === 'true'){
+        const imageAltRes = getImageAls(node);
+        pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
+    }
+    
+    const imageSrcRes = checkImageSrc(node);
+    pushResult(imageSrcRes, 'Error during image src validation', lineNumber);
+    if(imageSrcRes.valid === 'true'){
+        const imagSrcRes = getImageSrc(node);
+        pushResult(imagSrcRes, 'Error during image src validation', lineNumber);
+    }
+}
+
+
+// ---------------------------table validation overrides
+
+function checkTableRole(node) {
+    if (!node) throw new Error('HTML pasring error');
+    
+    if(node?.children &&  node?.children.every(child => child.type === 'text' && child.data.trim() !== "")){
+        const hasRole = Boolean(node.attribs && node.attribs.role === 'presentation');
+        return {...issue, issueType: 'bug', validationType: 'table role validation', valid: hasRole};
+    }
+    return {...issue, issueType: 'bug', valid: true};  
+}
+// module.exports = {checkTableRole};
+
+//invoke:
+const tableRoleRes = checkTableRole(node);
+pushResult(tableRoleRes, 'Error during image alt validation', lineNumber);
+
+
+// ---------------------------regEx validation overrides
+
+const regExs = ["<%=([^>]*)<%", "%[0-9].*"]; // test regExs
+const regExIssues = []; // acc of found issues
+
+function checkRegexPatternToArray(node){
+    if (!node) throw new Error('HTML pasring error');
+    if(node.type === 'text' && node?.data){
+        regExs.forEach(ex => {
+            if (ex.test(node.data)) regExIssues.push({...issue, issueType: 'bug', validationType: 'regEx validation', valid: false, message: `${ex} : ${node.data}`});
+        })
+    }
+}
+
+// module.exports = {checkRegexPatternToArray};
+
+//invoke:
+const regexPatternRes = checkRegexPatternToArray(node);
+if(regexPatternRes.length){
+    regexPatternRes.forEach(res => pushResult(res, 'Error during regEx validation', lineNumber));
+}
+
+
 

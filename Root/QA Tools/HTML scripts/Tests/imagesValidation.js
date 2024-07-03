@@ -2,7 +2,7 @@
 function checkIsEmptySrc(node){
     if (!node) throw new Error('HTML pasring error');
     if(node?.attribs && node?.attribs?.src){
-        isEmptyPath = !node?.attribs?.href.trim();
+        isEmptyPath = !node?.attribs?.src.trim();
         return isEmptyPath;
     }
     else return true;
