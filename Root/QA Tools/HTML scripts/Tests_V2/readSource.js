@@ -6,7 +6,7 @@ const issue = require('../config').issue;
 
 //TODO:
 // take from cmd like an argument
-const srcDirName = './Src';
+const srcDirName = './src';
 
 const errorSnippet = (message) => {
     return  `💣 Error - ${message}`

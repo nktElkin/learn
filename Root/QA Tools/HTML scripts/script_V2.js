@@ -8,7 +8,7 @@ const issue = require('./config.js').issue
 const {logIssue} = require('./InputOutput_V2/complectReport.js');
 const {checkSrc} = require('./Tests_V2/readSource.js');
 
-const { parseHtmlDom } = require('./InputOutput/parseHtmlDom.js');
+const { parseHtmlDom } = require('./InputOutput_V2/parseHtmlDom.js');
 const fs = require('fs');
 
 /**

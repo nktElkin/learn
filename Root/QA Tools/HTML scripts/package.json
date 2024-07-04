@@ -10,6 +10,6 @@
     "htmlparser2": "^9.1.0"
   },
   "scripts": {
-    "start": "node ./script_V2.js ./Src/index.html"
+    "start": "node ./script_V2.js ./src/index.html"
   }
 }
