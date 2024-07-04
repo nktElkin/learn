@@ -4,16 +4,12 @@ const {checkHrefPath, checkHashHref, checkLinkContent , checkLinkLabel, getLinkL
 const {checkTableRole} = require('./Tests_V2/tableValidation');
 const {checkRegexPatternToArray} = require('./Tests_V2/regexValidation');
 const {getLang, checkMeta} = require('./Tests_V2/headValidation');
+const issue = require('./config.js').issue
+const {logIssue} = require('./InputOutput_V2/complectReport.js');
+const {checkSrc} = require('./Tests_V2/readSource.js');
 
-const { parseHtmlDom } = require('./parseHtml')
-
-
-
-/**
- * @typedef {Array<Issue>} ListOfIssues
-*/
-
-
+const { parseHtmlDom } = require('./InputOutput/parseHtmlDom.js');
+const fs = require('fs');
 
 /**
  * @typedef {Function} ValidationFunction
@@ -22,12 +18,6 @@ const { parseHtmlDom } = require('./parseHtml')
  * @returns {Issue}
  * @throws {Error} err in case node wasn't passed
  */
-
-
-
-
-
-
 
 
 /**
@@ -43,9 +33,6 @@ function getLineNumberFromPosition(html, position) {
     return +lines.length;
 }
 
-
-
-
 /**
  * @async
  * @function
@@ -60,14 +47,15 @@ async function analizeDocument(html) {
         if (dom === null) throw new Error("html parsing error, can't continue")
 
         /**
-         * @type {ListOfIssues}
+         * @type {Array<import('./config.js').Issue>}
          */
         const bugsList = [];
         /**
-         * @type {ListOfIssues}
+         * @type {Array<import('./config.js').Issue>}
          */
         const infosList = [];
 
+        
         /**
          * Pushes the result of a validation into the appropriate list based on its type.
          * 
@@ -76,22 +64,28 @@ async function analizeDocument(html) {
          * @param {number} [lineNumber=0] - The line number where the validation issue was found.
          * @throws {Error} Throws an error with the provided error message if targetObject is falsy.
          */
-        function pushResult(targetObject, errorMessage, lineNumber = 0) {
+        function pushResult(targetObject, errorMessage = 'Error during validation', lineNumber = 0) {
             if (!targetObject) throw new Error(errorMessage);
             // issueType === 'bug' && valid: false => push to bugsList
             if (!targetObject.valid && targetObject.issueType === 'bug') bugsList.push({ ...targetObject, issueType: 'bug', validationType: targetObject.validationType, line: lineNumber})
-            // issueType === 'unfo' && valid: true => push to infosList
+                // issueType === 'unfo' && valid: true => push to infosList
             else if (targetObject.valid && targetObject.issueType === 'info') infosList.push({ ...targetObject, issueType: 'info', validationType: targetObject.validationType, line: lineNumber, message: targetObject.message });
         }
+        
 
+        // validationType: src reading
+
+    
+        const {markupIssue, imagesIssue} = await checkSrc();
+        if(imagesIssue) pushResult(imagesIssue);
+      
+        
 
         function traverseNodes(nodes) {
             if (!Array.isArray(nodes)) nodes = [nodes];
             nodes.forEach(node => {
-
                 // calculate line position of current line
                 const lineNumber = getLineNumberFromPosition(html, node.startIndex);
-
                 // node type: tag
                 if (node?.type === 'tag') {
                     switch (node.name) {
@@ -101,7 +95,7 @@ async function analizeDocument(html) {
                                 // validationType: 'alt availability'
                                 const imageAltRes = checkImageAls(node);
                                 pushResult(imageAltRes, 'Error during image alt validation', lineNumber);
-                                if(imageAltRes.valid === 'true'){
+                                if(imageAltRes.valid === true){
                                     const imageAlt = getImageAls(node);
                                     pushResult(imageAlt, 'Error during image alt validation', lineNumber);
                                 }
@@ -109,10 +103,19 @@ async function analizeDocument(html) {
                                 // validationType: 'src availability'
                                 const imageSrcRes = checkImageSrc(node);
                                 pushResult(imageSrcRes, 'Error during image src validation', lineNumber);
-                                if(imageSrcRes.valid === 'true'){
+                                if(imageSrcRes.valid === true){
                                     const imagaSrc = getImageSrc(node);
                                     pushResult(imagaSrc, 'Error during image src validation', lineNumber);
                                 }
+                            }
+
+                            // validationType: _two50
+                            if(node?.attribs?.id && node?.attribs?.width === '1' && node?.attribs?.height === '1'){
+                                const hasTargetId = node?.attribs?.id === '_two50_img';
+                                pushResult({...issue,
+                                    issueType: hasTargetId ? 'info' : 'bug', valid: hasTargetId, validationType: '_two50',
+                                    message: !hasTargetId ? 'no _two50_img id in img' : `<img> tag`},
+                                    'Error during special class validation', lineNumber);
                             }
                             break;
                             // {, getLinkLabel}
@@ -140,7 +143,8 @@ async function analizeDocument(html) {
                         case 'table':
                             // validationType: table role validation
                             const tableRoleRes = checkTableRole(node);
-                            pushResult(tableRoleRes, 'Error during image alt validation', lineNumber);
+                            // console.log(tableRoleRes.issueType, tableRoleRes.validationType, tableRoleRes.valid  )
+                            pushResult(tableRoleRes, 'Error during table role validation', lineNumber);
                             break;    
                         case 'html':
                             // validationType: lang validation
@@ -149,47 +153,89 @@ async function analizeDocument(html) {
                             break;
                         case 'meta':
                             // validationType: encoding type
-                            const metaRes = checkMeta(node);
-                            pushResult(metaRes,'Error during encoding type validation', lineNumber);
+                            if(!node.attribs.hasOwnProperty('name')){
+                                const metaRes = checkMeta(node);
+                                pushResult(metaRes,'Error during encoding type validation', lineNumber);
+                            }
+                            break;
+                        case 'div':
+                            // validationType: _two50
+                            if(node?.attribs){
+                                const hasTargetId = node?.attribs?.id === '_two50';
+                                pushResult({...issue,
+                                    issueType: hasTargetId ? 'info' : 'bug', valid: hasTargetId, validationType: '_two50',
+                                    message: !hasTargetId ? 'no _two50 id in div' : `<div> tag`},
+                                    'Error during special class validation', lineNumber);
+                            }
+                            break;
+                        case 'td':
+                             // validationType: preheader validation
+                            if(node?.attribs?.style){
+                                const displayNone = node?.attribs?.style.includes('display:none');
+                                // const zeroFontSize = node?.attribs?.style.includes('font-size:0');
+                                // const zeroLineHeight = node?.attribs?.style.includes('line-height:0');
+                                if(displayNone){
+                                    const innerContent = node?.children[0]?.data.replace('\n', ' ').replace('\r', ' ').trim();
+                                    const hasContent = Boolean(innerContent);
+                                    pushResult({...issue,
+                                        issueType: hasContent ? 'info' : 'bug', valid: hasContent, validationType: 'preheader validation',
+                                        message: !hasContent ? 'not provided' : innerContent},
+                                        'Error during preheader validation', lineNumber);   
+                                }
+                            }
                             break;
                     }
                 }
 
                 // node type: style
                 if(node?.type === 'style'){
-                    if (node?.attribs?.data) {
+                    if (node?.children) {
                         // validationType: hover validation
-                        const hasHoverClass = node?.attribs?.data.includes(':hover')
+                        const hasHoverClass = node?.children[0].data.includes(':hover');
                         pushResult({...issue,
                             issueType: 'bug', valid: !hasHoverClass, validationType: 'hover validation'},
                             'Error during hover pseudo-class validation', lineNumber);
                         
+                        
                         // validationType: style #_two50
-                        const specialStyle = node?.attribs?.data.includes('#_two50');
-                        const hasSpecialStile = Boolean(specialStyle);
-                        // if has -> issueType: info, else issueType: bug 
-                        pushResult({...issue,
-                            issueType: hasSpecialStile ? 'info' : 'bug', valid: hasSpecialStile, validationType: 'style #_two50',
-                            message: !hasSpecialStyle ? specialStyle : ''},
-                            'Error during special class validation', lineNumber);
+                        if(Object.keys(node?.attribs).length === 0){
+                            const hasSpecialStile = node?.children[0].data.includes('#_two50');
+                            let matches;
+                            if(hasSpecialStile) matches = node?.children[0].data.split('#_two50').length - 1;
+                            // if has -> issueType: info, else issueType: bug 
+                            pushResult({...issue,
+                                issueType: hasSpecialStile ? 'info' : 'bug', valid: hasSpecialStile, validationType: '_two50',
+                                message: !hasSpecialStile ? 'no #_two50 in style' : `${matches} ${matches > 1 ? 'times': 'time'} <style> tag`},
+                                'Error during special class validation', lineNumber);
+                        }
                     }
                 }
 
                 // node type: text
                 if(node?.type === 'text' && node?.data){
-                    // validationType: regEx validation
-                    const regexPatternRes = checkRegexPatternToArray(node);
-                    if(regexPatternRes.length){
-                        regexPatternRes.forEach(res => pushResult(res, 'Error during regEx validation', lineNumber));
+                    try {
+                        // validationType: regEx validation
+                        const regexPatternRes = checkRegexPatternToArray(node);
+                        if(regexPatternRes?.length){
+                            regexPatternRes.forEach(res => pushResult(res, 'Error during regEx validation', lineNumber));
+                        }
+                    } catch (error) {
+                        console.log(error)
                     }
+                }
+
+
+                // recursion
+                if (node.children && node.children.length) {
+                    traverseNodes(node.children);
                 }
             })
         }
 
 
         traverseNodes(dom);
+        // console.log(bugsList, infosList);
         return {bugsList, infosList};
-
     } catch (err) {
         console.error(err);
     }
@@ -215,14 +261,13 @@ const getReport = async (err, data) => {
     }
     try {
         const {bugsList, infosList} = await analizeDocument(data)
-        // override report function
-        // .
-        // .
-        // .
+
+        logIssue(bugsList, 'bug');
+        logIssue(infosList, 'info');
 
 
     } catch (error) {
-        console.error("💣 error during the process");
+        console.error("💣 error during the process", error);
         process.exit(1);
     }
 } 

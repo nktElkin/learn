@@ -6,8 +6,8 @@ const issue = require('../config').issue;
 */
 function getLang(node) {
     if (!node) throw new Error("error, no node in checkIncorrectLang");
-    if (node?.attrib && node?.attrib?.lang && node?.attrib?.lang.trim() !== "" && typeof node?.attrib?.lang === 'string'    )
-        return {...issue, issueType: 'info', validationType: 'lang validation', valid: true, message: node.attrib.lang };
+    if (node?.attribs && node?.attribs?.lang && node?.attribs?.lang.trim() !== "" && typeof node?.attribs?.lang === 'string')
+        return {...issue, issueType: 'info', validationType: 'lang validation', valid: true, message: node.attribs.lang };
     return {...issue, issueType: 'bug', validationType: 'lang validation', valid: false };
 }
 

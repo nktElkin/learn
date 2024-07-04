@@ -22,7 +22,7 @@ function getImageSrc(node){
     if (!node) throw new Error('HTML pasring error');
     if(node?.attribs && node?.attribs?.src){
         const imageSrc = node?.attribs?.src.trim();
-        return {...issue, issueType: 'info', validationType: 'src availability', valid: Boolean(imageSrc), message: hasSrc};
+        return {...issue, issueType: 'info', validationType: 'src availability', valid: Boolean(imageSrc), message: imageSrc};
     }
     else return {...issue, issueType: 'info', validationType: 'src availability', valid: false};
 }

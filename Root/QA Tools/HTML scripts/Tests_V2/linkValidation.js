@@ -17,7 +17,7 @@ function checkLinkContent(node) {
 function checkHrefPath(node) {
     if (!node) throw new Error('HTML pasring error');
     if (node?.attribs && node?.attribs?.href) {
-        hasHrefPath = Boolean(node?.attribs?.href.trim());
+        const hasHrefPath = Boolean(node?.attribs?.href.trim());
         return { ...issue, issueType: 'bug', validationType: 'link href path', valid: hasHrefPath };
     }
     else return { ...issue, issueType: 'bug', validationType: 'link href path', valid: false };;
@@ -41,7 +41,7 @@ function checkLinkLabel(node) {
     if (!node) throw new Error('HTML pasring error');
     if (node?.attribs && node?.attribs?._label) {
         const hasLinkLabel = Boolean(node?.attribs?._label.trim());
-        return { ...issue, issueType: 'bug', validationType: '_label validation', valid: hasLabel };
+        return { ...issue, issueType: 'bug', validationType: '_label validation', valid: hasLinkLabel };
     }
     return { ...issue, issueType: 'bug', validationType: '_label validation', valid: false };
 }

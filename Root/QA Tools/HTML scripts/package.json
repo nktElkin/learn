@@ -1,7 +1,8 @@
 {
   "name": "your-package-name",
   "version": "1.0.0",
-  "main": "testScript.js",
+  "main": "script_V2.js",
+  "author": "Nikita Elkin",
   "devDependencies": {
     "axios": "^1.7.2",
     "excel4node": "^1.8.2",
@@ -9,6 +10,6 @@
     "htmlparser2": "^9.1.0"
   },
   "scripts": {
-    "start": "node ./testScript.js ./Src/index.html"
+    "start": "node ./script_V2.js ./Src/index.html"
   }
 }

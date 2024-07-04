@@ -23,6 +23,4 @@ const regExs = ["<%=([^>]*)<%", "%[0-9].*"];
 
 
 
-
-
 module.exports = {issue, regExs}
