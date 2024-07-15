@@ -1,0 +1,29 @@
+# PROJECT REQUIREMENTS:
+- no login functionality
+- no order history
+- no user profile 
+- pizza menu loads from api
+- user can add multiplu pizzas to cart before ordering, even after order posted
+- user can add priority
+- order by send POST request to api
+- unique ID for each order
+ 
+# FEATURE CATEGORIES
+- user
+- menu
+- cart
+- order
+
+# PAGES
+- homepage ```/```
+- pizza menu ```/menu```
+- cart ```/cart```
+- order ```/order```
+-- placing of new order ```/order/new```
+-- looking up an order ```/order/:id```
+
+# SLICES
+- global ui (user)
+- global remote (will be fatched, menu)
+- global ui (cart)
+- gloabl remote (order, will be fatched, posted)
