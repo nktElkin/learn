@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
+import { createOrder } from "../../services/apiRestaurant";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -31,6 +33,11 @@ const fakeCart = [
 ];
 
 function CreateOrder() {
+  const navigation = useNavigation();
+  const isSubmiting = navigation.state === 'submitting';
+
+  const formErrors = useActionData();
+
   const [withPriority, setWithPriority] = useState(false);
   const cart = fakeCart;
 
@@ -38,7 +45,7 @@ function CreateOrder() {
     <div>
       <h2>Ready to order? Letqs go!</h2>
 
-      <form>
+      <Form method="POST">
         <div>
           <label>First Name</label>
           <input type="text" name="customer" required />
@@ -47,7 +54,8 @@ function CreateOrder() {
         <div>
           <label>Phone number</label>
           <div>
-            <input type="tel" name="phone" required />
+            <input type="tel" name="phone" minLength='6' required />
+            {formErrors?.phone && <span> {formErrors?.phone}</span>}
           </div>
         </div>
 
@@ -70,11 +78,31 @@ function CreateOrder() {
         </div>
 
         <div>
-          <button>Order now</button>
+          <input type="hidden" name="cart" value={JSON.stringify(cart)} />
+          <button disabled={isSubmiting}>{isSubmiting ? 'Packing it...' : 'Order now'}</button>
         </div>
-      </form>
+      </Form>
     </div>
   );
+}
+
+export async function action({request}){
+  const errors = {};
+  const formData = await request.formData();
+  const data = Object.fromEntries(formData);
+  // serialize data for send creating order
+  const order = {...data, cart: JSON.parse(data.cart), priority: data.priority === 'on'};
+  
+  // form validation
+  if(!isValidPhone(order.phone)) errors.phone = 'Phone number is not valid';
+  if(Object.keys(errors).length) return errors;
+
+  // place new order
+  const res = await createOrder(order);
+  if(!res) return;
+  // redirect to order page once it's successfully created
+  console.log(res);
+  return redirect('/order/' + res.id);
 }
 
 export default CreateOrder;
