@@ -12,7 +12,7 @@ function SearchOrder() {
     }
     return (
         <form action="" onSubmit={handleSubmit}>
-            <input placeholder="Write your order number" value={query} onChange={(e) => setQuery(e.target.value)}/>            
+            <input className="transition-all opacity-50 duration-300 rounded-lg px-2 w-full sm:max-w-fit tracking-wide md:min-w-max focus:outline-none focus:ring focus:opacity-100 focus:ring-white focus:ring-offset-2" type="text" placeholder="Write your order number " value={query} onChange={(e) => setQuery(e.target.value)}/>            
         </form>
     )
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
 import { createOrder } from "../../services/apiRestaurant";
+import Button from "../../ui/Button";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -43,63 +44,66 @@ function CreateOrder() {
 
   return (
     <div>
-      <h2>Ready to order? Letqs go!</h2>
+      <h2 className="text-xl ">Ready to order? Letqs go!</h2>
 
-      <Form method="POST">
-        <div>
+      <Form method="POST" className="space-y-2">
+        <div className="space-x-2">
           <label>First Name</label>
-          <input type="text" name="customer" required />
+          <input type="text" name="customer" placeholder="Franklin" required className="input validated"/>
         </div>
 
-        <div>
+        <div  className="space-x-2">
           <label>Phone number</label>
-          <div>
-            <input type="tel" name="phone" minLength='6' required />
-            {formErrors?.phone && <span> {formErrors?.phone}</span>}
+          <div className="inline">
+            <input type="tel" name="phone" minLength='6' required placeholder="(+420) 12-345-67-89" className="input validated"/>
+            {formErrors?.phone && <span> {formErrors?.phone}</span>}  
           </div>
         </div>
 
-        <div>
+        <div className="space-x-2">
           <label>Address</label>
-          <div>
-            <input type="text" name="address" required />
+          <div className="inline">
+            <input type="text" name="address" required placeholder="City street, 17" className="input validated"/>
           </div>
         </div>
 
-        <div>
+        <div className="space-x-2">
           <input
+            className="accent-amber-400 h-4 w-4"
             type="checkbox"
             name="priority"
             id="priority"
-            // value={withPriority}
-            // onChange={(e) => setWithPriority(e.target.checked)}
+          // value={withPriority}
+          // onChange={(e) => setWithPriority(e.target.checked)}
           />
-          <label htmlFor="priority">Want to yo give your order priority?</label>
+          <label htmlFor="priority">Want to start reactive engine?</label>
         </div>
 
         <div>
           <input type="hidden" name="cart" value={JSON.stringify(cart)} />
-          <button disabled={isSubmiting}>{isSubmiting ? 'Packing it...' : 'Order now'}</button>
+            <Button disabled={isSubmiting}>
+             {isSubmiting ? 'Packing it...' : 'Order now'}
+            </Button>
         </div>
       </Form>
     </div>
   );
 }
 
-export async function action({request}){
+export async function action({ request }) {
   const errors = {};
   const formData = await request.formData();
   const data = Object.fromEntries(formData);
   // serialize data for send creating order
-  const order = {...data, cart: JSON.parse(data.cart), priority: data.priority === 'on'};
-  
+  const order = { ...data, cart: JSON.parse(data.cart), priority: data.priority === 'on' };
+
   // form validation
-  if(!isValidPhone(order.phone)) errors.phone = 'Phone number is not valid';
-  if(Object.keys(errors).length) return errors;
+  if (!isValidPhone(order.phone)) errors.phone = 'Phone number is not valid';
+  if (Object.keys(errors).length) return errors;
 
   // place new order
   const res = await createOrder(order);
-  if(!res) return;
+  if (!res) return;
   // redirect to order page once it's successfully created
   console.log(res);
   return redirect('/order/' + res.id);
