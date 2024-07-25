@@ -10,6 +10,9 @@
   .validated {
     @apply focus:invalid:ring-red-400 focus:valid:ring-emerald-400
   }
+  .responsive{
+    @apply sm:min-w-full
+  }
 
   /* https://dev.to/afif/i-made-100-css-loaders-for-your-next-project-4eje */
 .loader {
