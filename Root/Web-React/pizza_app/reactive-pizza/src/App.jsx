@@ -3,10 +3,11 @@ import {createBrowserRouter, RouterProvider, useRouteError } from 'react-router-
 import Home from './ui/Home.jsx'
 import Menu, {loader as menuLoader} from './features/menu/Menu.jsx'
 import Cart from './features/cart/Cart.jsx'
-import CreateOrder from './features/order/CreateOrder.jsx'
-import Order from './features/order/Order.jsx'
+import CreateOrder, {action as actionCreateOrder} from './features/order/CreateOrder.jsx'
+import Order, {loader as orderLoader}from './features/order/Order.jsx'
 import Error from './ui/Error.jsx'
 import AppLayout from './ui/AppLayout.jsx'
+import {action as updatePriorityAction} from './ui/UpdatePrioButton.jsx'
 
 
 // ROUTES
@@ -31,11 +32,15 @@ const router = createBrowserRouter([
       },
       {
         path: '/order/new',
-        element: <CreateOrder/>
+        element: <CreateOrder/>,
+        action: actionCreateOrder
       },
       {
-        path: '/order/:id',
-        element: <Order/>
+        path: '/order/:orderId',
+        element: <Order/>,
+        loader: orderLoader,
+        errorElement: <Error/>,
+        action: updatePriorityAction,
       },
     ],
   },

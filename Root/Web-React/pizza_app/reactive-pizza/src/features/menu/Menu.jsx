@@ -5,10 +5,11 @@ import MenuItem from "./MenuItem";
 function Menu() {
   const menu =useLoaderData()
   return (
-    <>
-    <h1>Menu</h1>
-    {menu.map(el => <MenuItem key={el.id} pizza={el} />)} 
-    </>
+    <div className="px-2 md:px-0">
+    <div className="flex flex-col">
+      {menu.map(el => <MenuItem key={el.id} pizza={el} />)} 
+    </div>
+    </div>
   );
 }
 
