@@ -5,6 +5,7 @@ import Button from '../../ui/Button';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCart } from './cartSlice';
 import { clearCart } from './cartSlice';
+import UpdatePrioButton from '../../ui/UpdatePrioButton';
 
 function Cart() {
   const dispatch = useDispatch();
@@ -38,6 +39,7 @@ function Cart() {
         <Button type='transparent' onClick={handlerClearCart}>Clear cart</Button>
       </div>
     </div>
+
   );
 }
 

@@ -40,10 +40,9 @@ const fakeCart = [
 function CreateOrder() {
   const [withPriority, setWithPriority] = useState(false);
   const navigation = useNavigation();
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const baseCartPrice = useSelector(getTotalCartPrice);
-  const totalCartPrice = withPriority ? baseCartPrice * 1.2 : baseCartPrice;
+  const totalCartPrice = withPriority ? Math.ceil(baseCartPrice * 1.2) : baseCartPrice;
   const isSubmiting = navigation.state === 'submitting';
 
   const formErrors = useActionData();

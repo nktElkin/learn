@@ -9,6 +9,7 @@ import {
 } from "../../utils/helpers";
 import CartItem from "../cart/CartItem";
 import { useEffect } from "react";
+import UpdatePrioButton from "../../ui/UpdatePrioButton";
 
 function Order() {
   const order = useLoaderData();
@@ -60,6 +61,7 @@ function Order() {
         {priority && <p>Price priority: {formatCurrency(priorityPrice)}</p>}
         <p>To pay on delivery: {formatCurrency(orderPrice + priorityPrice)}</p>
       </div>
+      {!priority && <UpdatePrioButton order={order}/>}
     </div>
   );
 }

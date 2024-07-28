@@ -7,6 +7,7 @@ import CreateOrder, {action as actionCreateOrder} from './features/order/CreateO
 import Order, {loader as orderLoader}from './features/order/Order.jsx'
 import Error from './ui/Error.jsx'
 import AppLayout from './ui/AppLayout.jsx'
+import {action as updatePriorityAction} from './ui/UpdatePrioButton.jsx'
 
 
 // ROUTES
@@ -38,7 +39,8 @@ const router = createBrowserRouter([
         path: '/order/:orderId',
         element: <Order/>,
         loader: orderLoader,
-        errorElement: <Error/>
+        errorElement: <Error/>,
+        action: updatePriorityAction,
       },
     ],
   },
