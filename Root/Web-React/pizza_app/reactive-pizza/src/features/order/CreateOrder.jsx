@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
+import { Form, redirect, useActionData, useNavigate, useNavigation } from "react-router-dom";
 import { createOrder } from "../../services/apiRestaurant";
 import Button from "../../ui/Button";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { clearCart, getCart, getTotalCartPrice } from "../cart/cartSlice";
+import store from "../../store";
+import { fetchAddress } from "../user/userSlice";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -35,16 +38,28 @@ const fakeCart = [
 ];
 
 function CreateOrder() {
+  const [withPriority, setWithPriority] = useState(false);
   const navigation = useNavigation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const baseCartPrice = useSelector(getTotalCartPrice);
+  const totalCartPrice = withPriority ? baseCartPrice * 1.2 : baseCartPrice;
   const isSubmiting = navigation.state === 'submitting';
 
   const formErrors = useActionData();
-  const username = useSelector((state) => state.user.username)
-  const [withPriority, setWithPriority] = useState(false);
-  const cart = fakeCart;
+  const {username, address, position, status: fetchingStatus, error: userGeolocationError} = useSelector((state) => state.user)
+  const isLoadingPosition = fetchingStatus === 'loading'; 
+  let userAddress = address
+  // const userAddress = useSelector((state) => state.user.address);
+  const cart = useSelector(getCart);
+
+  // if(cart.length === 0){
+  //   navigate('/menu');
+  //   return null;
+  // }
 
   return (
-    <div className="mx-2">
+    <div className="flex flex-col">
       <h2 className="text-xl ">Ready to order? Letqs go!</h2>
 
       <Form method="POST" className="space-y-2">
@@ -55,18 +70,23 @@ function CreateOrder() {
 
         <div  className="flex gap-2">
           <label>Phone number</label>
-          
-            <input type="tel" name="phone" minLength='6' required placeholder="(+420) 12-345-67-89" className="input validated "/>
-            {formErrors?.phone && <span> {formErrors?.phone}</span>}  
-    
+          <input type="tel" name="phone" minLength='6' required placeholder="(+420) 12-345-67-89" className="input validated "/>
         </div>
+        {formErrors?.phone && <div className="bg-red-300 opacity-70 px-2 w-fit rounded-lg "> {formErrors?.phone}</div>}  
 
-        <div className="space-x-2">
+        <div className={`space-x-2 ${isLoadingPosition ? 'opacity-40' : ''}`}>
           <label>Address</label>
           <div className="inline">
-            <input type="text" name="address" required placeholder="City street, 17" className="input validated grow"/>
+            <input type="text" name="address" defaultValue={userAddress.split(', ')[0]} required placeholder="City street, 17" className="input validated grow"/>
+              <Button type='small_transparent' className="lowercase text-sm" disabled={isLoadingPosition} onClick={(e) => {
+                e.preventDefault();
+                dispatch(fetchAddress());
+                userAddress = address;
+              }
+            }><span className="text-xs">find me</span></Button>
           </div>
         </div>
+            {userGeolocationError && <div className="bg-red-300 opacity-70 px-2 w-fit rounded-lg "> {userGeolocationError}</div>}  
 
         <div className="space-x-2">
           <input
@@ -74,16 +94,17 @@ function CreateOrder() {
             type="checkbox"
             name="priority"
             id="priority"
-          // value={withPriority}
-          // onChange={(e) => setWithPriority(e.target.checked)}
+            value={withPriority}
+            onChange={(e) => setWithPriority(e.target.checked)}
           />
           <label htmlFor="priority">Want to start reactive engine?</label>
         </div>
 
         <div>
           <input type="hidden" name="cart" value={JSON.stringify(cart)} />
-            <Button disabled={isSubmiting}>
-             {isSubmiting ? 'Packing it...' : 'Order now'}
+          <input type="hidden" name="position" value={position ? `${position.latitude},${position.longitude}` : null} />
+            <Button disabled={isSubmiting} type={withPriority ? 'reactive' : 'regular'}>
+             {isSubmiting ? 'Packing it...' : `Order now $${totalCartPrice}`}
             </Button>
         </div>
       </Form>
@@ -96,17 +117,17 @@ export async function action({ request }) {
   const formData = await request.formData();
   const data = Object.fromEntries(formData);
   // serialize data for send creating order
-  const order = { ...data, cart: JSON.parse(data.cart), priority: data.priority === 'on' };
+  const order = { ...data, cart: JSON.parse(data.cart), priority: data.priority === 'true' };
 
   // form validation
   if (!isValidPhone(order.phone)) errors.phone = 'Phone number is not valid';
-  if (Object.keys(errors).length) return errors;
+  if (Object.keys(errors).length != 0) return errors;
 
   // place new order
   const res = await createOrder(order);
   if (!res) return;
   // redirect to order page once it's successfully created
-  console.log(res);
+  store.dispatch(clearCart());
   return redirect('/order/' + res.id);
 }
 
